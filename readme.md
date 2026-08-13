@@ -2,7 +2,7 @@
 # Examen Estraordinario - Aplicación Ionic Simpsons
 
 ## Datos del estudiantes
-- Nombre: ______________________
+- Nombre: Keila Alely Cerda Alvarado
 
 ## 📋 Objetivo
 

@@ -1,57 +1,115 @@
-import MessageListItem from '../components/MessageListItem';
-import { useState } from 'react';
-import { Message, getMessages } from '../data/messages';
+import { useEffect, useState } from 'react';
 import {
+  IonAvatar,
   IonContent,
   IonHeader,
+  IonItem,
+  IonLabel,
   IonList,
+  IonLoading,
   IonPage,
   IonRefresher,
   IonRefresherContent,
   IonTitle,
   IonToolbar,
-  useIonViewWillEnter
 } from '@ionic/react';
+
+import { Character } from '../types/character';
+import { getCharacters } from '../services/simpsonsService';
 import './Home.css';
 
+const IMAGE_BASE_URL = 'https://cdn.thesimpsonsapi.com/500';
+
 const Home: React.FC = () => {
+  const [characters, setCharacters] = useState<Character[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  const [messages, setMessages] = useState<Message[]>([]);
+  const loadCharacters = async () => {
+    try {
+      setLoading(true);
+      setError('');
 
-  useIonViewWillEnter(() => {
-    const msgs = getMessages();
-    setMessages(msgs);
-  });
-
-  const refresh = (e: CustomEvent) => {
-    setTimeout(() => {
-      e.detail.complete();
-    }, 3000);
+      const data = await getCharacters();
+      setCharacters(data);
+    } catch (error) {
+      console.error('Error al cargar los personajes:', error);
+      setError('No se pudieron cargar los personajes.');
+    } finally {
+      setLoading(false);
+    }
   };
+
+  useEffect(() => {
+    loadCharacters();
+  }, []);
 
   return (
     <IonPage id="home-page">
       <IonHeader>
         <IonToolbar>
-          <IonTitle>Inbox</IonTitle>
+          <IonTitle>Personajes de Los Simpson</IonTitle>
         </IonToolbar>
       </IonHeader>
+
       <IonContent fullscreen>
-        <IonRefresher slot="fixed" onIonRefresh={refresh}>
-          <IonRefresherContent></IonRefresherContent>
+        <IonRefresher
+          slot="fixed"
+          onIonRefresh={async (event) => {
+            await loadCharacters();
+            event.detail.complete();
+          }}
+        >
+          <IonRefresherContent
+            pullingText="Desliza para actualizar"
+            refreshingSpinner="circles"
+            refreshingText="Actualizando personajes..."
+          />
         </IonRefresher>
+        <IonLoading
+          isOpen={loading}
+          message="Cargando personajes..."
+        />
 
-        <IonHeader collapse="condense">
-          <IonToolbar>
-            <IonTitle size="large">
-              Inbox
-            </IonTitle>
-          </IonToolbar>
-        </IonHeader>
+        {error && (
+          <div className="state-message error-message">
+            {error}
+          </div>
+        )}
 
-        <IonList>
-          {messages.map(m => <MessageListItem key={m.id} message={m} />)}
-        </IonList>
+        {!loading && !error && characters.length === 0 && (
+          <div className="state-message">
+            No hay personajes disponibles.
+          </div>
+        )}
+
+        {!loading && !error && characters.length > 0 && (
+          <IonList className="character-list">
+            {characters.map((character) => (
+              <IonItem key={character.id} className="character-item">
+                <IonAvatar slot="start" className="character-avatar">
+                  <img
+                    src={`${IMAGE_BASE_URL}${character.portrait_path}`}
+                    alt={`Imagen de ${character.name}`}
+                  />
+                </IonAvatar>
+
+                <IonLabel>
+                  <h2>{character.name}</h2>
+                  <p>
+                    <strong>Género:</strong> {character.gender}
+                  </p>
+                  <p>
+                    <strong>Estado:</strong> {character.status}
+                  </p>
+                  <p>
+                    <strong>Ocupación:</strong> {character.occupation}
+                  </p>
+                </IonLabel>
+              </IonItem>
+            ))}
+          </IonList>
+        )}
       </IonContent>
     </IonPage>
   );
